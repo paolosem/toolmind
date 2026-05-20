@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚽ Lavagnetta Tattica Calcio</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d1117;color:#e6edf3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+#header{display:flex;align-items:center;gap:6px;padding:7px 12px;background:#161b22;border-bottom:1px solid #30363d;flex-wrap:wrap}
+h1{font-size:15px;font-weight:700;color:#58a6ff;white-space:nowrap;margin-right:4px}
+.grp{display:flex;align-items:center;gap:4px;padding:0 8px;border-right:1px solid #30363d}
+.grp:last-child{border-right:none}
+.glbl{font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-right:2px;white-space:nowrap}
+button{padding:5px 9px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer;font-size:12px;transition:background .15s,border-color .15s;white-space:nowrap}
+button:hover{background:#30363d;border-color:#58a6ff}
+button.active{background:#1f6feb;border-color:#58a6ff;color:#fff}
+select{padding:5px 7px;background:#21262d;color:#e6edf3;border:1px solid #30363d;border-radius:6px;font-size:12px;cursor:pointer}
+select:hover{border-color:#58a6ff}
+input[type=color]{width:28px;height:28px;border:1px solid #30363d;border-radius:6px;padding:2px;background:#21262d;cursor:pointer}
+input[type=range]{width:55px;accent-color:#58a6ff}
+#wrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;padding:10px;background:#0d1117;min-height:0}
+canvas{display:block;border-radius:4px;box-shadow:0 0 40px rgba(0,0,0,.8)}
+#bar{padding:3px 14px;background:#161b22;border-top:1px solid #30363d;font-size:11px;color:#8b949e;display:flex;gap:16px}
+.btn-a{border-color:#e74c3c!important}.btn-a:hover{background:#c0392b!important}
+.btn-b{border-color:#3498db!important}.btn-b:hover{background:#2980b9!important}
+
+/* ── ANIMATION PANEL ── */
+#anim-panel{display:none;background:#0f141a;border-top:1px solid #30363d;flex-direction:column}
+#anim-panel.open{display:flex}
+#anim-controls{display:flex;align-items:center;gap:8px;padding:6px 12px;background:#161b22;border-bottom:1px solid #1e2530;flex-shrink:0}
+#anim-controls button{padding:4px 10px;font-size:12px}
+#anim-scrubber-wrap{flex:1;height:8px;background:#21262d;border-radius:4px;cursor:pointer;position:relative;overflow:visible;margin:0 4px}
+#anim-progress{height:100%;background:#1f6feb;border-radius:4px;pointer-events:none;width:0%}
+.scr-kf-dot{position:absolute;width:8px;height:8px;background:#58a6ff;border-radius:50%;top:-1px;transform:translateX(-50%);border:1px solid #0f141a;pointer-events:none}
+#anim-time{font-size:11px;color:#8b949e;white-space:nowrap;font-variant-numeric:tabular-nums;min-width:90px}
+#anim-loop-lbl{font-size:11px;color:#8b949e;display:flex;align-items:center;gap:4px;cursor:pointer}
+#anim-loop-lbl input{accent-color:#58a6ff;cursor:pointer}
+#anim-speed{padding:4px 6px;font-size:11px}
+
+#storyboard-wrap{display:flex;gap:10px;padding:10px 12px;overflow-x:auto;flex-shrink:0;align-items:flex-start}
+.kf-card{flex-shrink:0;width:130px;border:2px solid #30363d;border-radius:8px;background:#21262d;cursor:pointer;transition:border-color .15s;overflow:hidden}
+.kf-card:hover{border-color:#58a6ff}
+.kf-card.active{border-color:#58a6ff;box-shadow:0 0 0 2px rgba(88,166,255,.2)}
+.kf-card.playing{border-color:#f8a622}
+.kf-thumb{display:block;width:130px;height:80px;object-fit:cover;background:#1a2030}
+.kf-foot{display:flex;align-items:center;padding:4px 6px;gap:4px}
+.kf-num{font-size:10px;color:#8b949e;font-weight:700;flex-shrink:0}
+.kf-dur{flex:1;font-size:10px;color:#e6edf3;text-align:center;padding:2px 4px;border-radius:4px;border:1px solid transparent;cursor:pointer;white-space:nowrap}
+.kf-dur:hover{border-color:#58a6ff;background:rgba(88,166,255,.1)}
+.kf-del{font-size:11px;color:#8b949e;cursor:pointer;padding:2px 3px;border-radius:3px;line-height:1}
+.kf-del:hover{color:#e74c3c;background:rgba(231,76,60,.1)}
+.kf-add{flex-shrink:0;width:130px;height:112px;border:2px dashed #30363d;border-radius:8px;background:none;color:#8b949e;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:12px;transition:all .15s}
+.kf-add:hover{border-color:#58a6ff;color:#58a6ff}
+.kf-add .plus{font-size:24px;font-weight:300;line-height:1}
+
+/* ── MODAL ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:22px;max-width:500px;width:90%}
+.modal h2{margin-bottom:10px;font-size:15px;color:#58a6ff}
+.modal p{font-size:12px;color:#8b949e;margin-bottom:10px}
+.modal input[type=text]{width:100%;padding:7px 10px;background:#21262d;border:1px solid #30363d;border-radius:6px;color:#e6edf3;font-size:12px;margin-bottom:12px}
+.mact{display:flex;gap:8px;justify-content:flex-end}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>⚽ Tattica</h1>
+
+  <div class="grp">
+    <span class="glbl">Strumento</span>
+    <button id="tsel" class="active" title="Seleziona (S)">↖ Seleziona</button>
+    <button id="tarr" title="Freccia (A)">→ Freccia</button>
+    <button id="tlin" title="Linea (L)">— Linea</button>
+    <button id="tfre" title="Libero (F)">✏ Libero</button>
+    <button id="ttxt" title="Testo (T)">T Testo</button>
+    <button id="tdel" title="Elimina (D)">✕ Cancella</button>
+  </div>
+
+  <div class="grp">
+    <span class="glbl">Squadre</span>
+    <button class="btn-a" onclick="addPlayer('A')">+ Team A</button>
+    <button class="btn-b" onclick="addPlayer('B')">+ Team B</button>
+    <select id="fmA" title="Formazione Team A"><option value="">Form. A…</option></select>
+    <select id="fmB" title="Formazione Team B"><option value="">Form. B…</option></select>
+  </div>
+
+  <div class="grp">
+    <span class="glbl">Stile</span>
+    <input type="color" id="dcol" value="#FFD700" title="Colore disegno">
+    <input type="range" id="dlw" min="1" max="10" value="2" title="Spessore">
+    <select id="dls">
+      <option value="solid">Continua</option>
+      <option value="dashed">Tratteggiata</option>
+      <option value="dotted">Punteggiata</option>
+    </select>
+  </div>
+
+  <div class="grp">
+    <span class="glbl">Azioni</span>
+    <button onclick="undo()" title="Annulla (Ctrl+Z)">↩ Annulla</button>
+    <button onclick="clearDrawings()">✕ Disegni</button>
+    <button onclick="resetAll()">↺ Reset</button>
+    <button onclick="download()">⬇ PNG</button>
+    <button onclick="share()" style="border-color:#58a6ff">🔗 Condividi</button>
+  </div>
+
+  <div class="grp">
+    <span class="glbl">Animazione</span>
+    <button id="btn-anim" onclick="toggleAnimMode()" title="Modalità animazione">🎬 Animazione</button>
+  </div>
+</div>
+
+<div id="wrap"><canvas id="c"></canvas></div>
+
+<!-- Animation panel -->
+<div id="anim-panel">
+  <div id="anim-controls">
+    <button onclick="animGoStart()" title="Torna all'inizio">⏮</button>
+    <button id="anim-play-btn" onclick="animTogglePlay()">▶ Play</button>
+    <button onclick="animStop()" title="Stop e torna al fotogramma 1">⏹ Stop</button>
+    <div id="anim-scrubber-wrap" title="Clicca per navigare">
+      <div id="anim-progress"></div>
+      <div id="scr-kf-dots"></div>
+    </div>
+    <span id="anim-time">0.0s / 0.0s</span>
+    <select id="anim-speed" title="Velocità playback" onchange="ANIM.speed=+this.value">
+      <option value="0.25">0.25×</option>
+      <option value="0.5">0.5×</option>
+      <option value="1" selected>1×</option>
+      <option value="2">2×</option>
+    </select>
+    <label id="anim-loop-lbl"><input type="checkbox" id="anim-loop" onchange="ANIM.loop=this.checked"> Loop</label>
+    <span style="margin-left:auto;font-size:11px;color:#8b949e">Seleziona un fotogramma per modificarlo • trascina i giocatori</span>
+  </div>
+  <div id="storyboard-wrap">
+    <!-- keyframe cards injected here -->
+  </div>
+</div>
+
+<div id="bar">
+  <span id="btool">Strumento: Seleziona</span>
+  <span id="bteams">Team A: 0 | Team B: 0</span>
+  <span id="btip">Suggerimento: doppio clic su un giocatore per modificare il nome</span>
+</div>
+
+<div class="overlay" id="shareModal">
+  <div class="modal">
+    <h2>🔗 Condividi la tattica</h2>
+    <p>Copia il link — contiene tutta la tattica codificata nell'URL:</p>
+    <input type="text" id="shareUrl" readonly>
+    <div class="mact">
+      <button onclick="copyUrl()">Copia link</button>
+      <button onclick="document.getElementById('shareModal').classList.remove('open')">Chiudi</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONSTANTS ────────────────────────────────────────
+const CW = 920, CH = 574;
+const FX = 36, FY = 27, FW = 848, FH = 520;
+const HS = FW/105, VS = FH/68;
+const PR = 16;
+
+// ─── HELPERS ──────────────────────────────────────────
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2)}
+function lerp(a,b,t){return a+(b-a)*t}
+function ease(t){return t<.5?2*t*t:-1+(4-2*t)*t}
+function cloneDeep(x){return JSON.parse(JSON.stringify(x))}
+
+// ─── STATE ────────────────────────────────────────────
+let S={
+  tool:'select',drawColor:'#FFD700',lineWidth:2,lineStyle:'solid',
+  players:[],arrows:[],lines:[],texts:[],
+  ball:{x:FX+FW/2,y:FY+FH/2},
+};
+
+// ─── ANIMATION STATE ──────────────────────────────────
+const ANIM={
+  active:false,
+  keyframes:[],   // [{id,dur,players,ball,arrows,lines,texts,thumb}]
+  currentKF:-1,
+  playing:false,
+  currentTime:0,  // ms
+  playWall:0,
+  playStart:0,
+  speed:1,
+  loop:false,
+  rafId:null,
+};
+
+let hist=[], drag=null, draw=null, sel=null;
+let nA=1, nB=1;
+let renderOverride=null; // when set, render uses this instead of S
+
+// ─── CANVAS SETUP ─────────────────────────────────────
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+const dpr=window.devicePixelRatio||1;
+canvas.width=CW*dpr; canvas.height=CH*dpr;
+canvas.style.width=CW+'px'; canvas.style.height=CH+'px';
+ctx.scale(dpr,dpr);
+
+// ─── PITCH ────────────────────────────────────────────
+function pitch(){
+  ctx.fillStyle='#0d1117'; ctx.fillRect(0,0,CW,CH);
+  const sw=FW/12;
+  for(let i=0;i<12;i++){
+    ctx.fillStyle=i%2?'#2e8b2e':'#339633';
+    ctx.fillRect(FX+i*sw,FY,sw,FH);
+  }
+  ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=1.8; ctx.setLineDash([]);
+  ctx.strokeRect(FX,FY,FW,FH);
+  ln(FX+FW/2,FY,FX+FW/2,FY+FH);
+  arc(FX+FW/2,FY+FH/2,9.15*VS);
+  dot(FX+FW/2,FY+FH/2,3);
+  const paW=16.5*HS,paH=40.32*VS,paY=FY+(FH-paH)/2;
+  ctx.strokeRect(FX,paY,paW,paH); ctx.strokeRect(FX+FW-paW,paY,paW,paH);
+  const gaW=5.5*HS,gaH=18.32*VS,gaY=FY+(FH-gaH)/2;
+  ctx.strokeRect(FX,gaY,gaW,gaH); ctx.strokeRect(FX+FW-gaW,gaY,gaW,gaH);
+  const psL=FX+11*HS,psR=FX+FW-11*HS,psy=FY+FH/2,ccr=9.15*VS;
+  dot(psL,psy,3); dot(psR,psy,3);
+  const aAng=Math.acos(((16.5-11)*HS)/ccr);
+  ctx.beginPath();ctx.arc(psL,psy,ccr,-aAng,aAng);ctx.stroke();
+  ctx.beginPath();ctx.arc(psR,psy,ccr,Math.PI-aAng,Math.PI+aAng);ctx.stroke();
+  const cr=1*HS;
+  ca(FX,FY,0,Math.PI/2); ca(FX+FW,FY,Math.PI/2,Math.PI);
+  ca(FX,FY+FH,-Math.PI/2,0); ca(FX+FW,FY+FH,Math.PI,3*Math.PI/2);
+  const gH=7.32*VS,gD=2.44*HS,gY=FY+(FH-gH)/2;
+  ctx.strokeStyle='rgba(255,255,255,.6)';
+  ctx.beginPath();ctx.moveTo(FX,gY);ctx.lineTo(FX-gD,gY);ctx.lineTo(FX-gD,gY+gH);ctx.lineTo(FX,gY+gH);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(FX+FW,gY);ctx.lineTo(FX+FW+gD,gY);ctx.lineTo(FX+FW+gD,gY+gH);ctx.lineTo(FX+FW,gY+gH);ctx.stroke();
+  function ln(x1,y1,x2,y2){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
+  function arc(x,y,r){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.stroke();}
+  function dot(x,y,r){ctx.fillStyle='white';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}
+  function ca(x,y,s,e){ctx.beginPath();ctx.arc(x,y,cr,s,e);ctx.stroke();}
+}
+
+// ─── ARROWHEAD ────────────────────────────────────────
+function arrowhead(x1,y1,x2,y2,color,sz){
+  const a=Math.atan2(y2-y1,x2-x1);
+  ctx.fillStyle=color; ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-sz*Math.cos(a-Math.PI/6),y2-sz*Math.sin(a-Math.PI/6));
+  ctx.lineTo(x2-sz*Math.cos(a+Math.PI/6),y2-sz*Math.sin(a+Math.PI/6));
+  ctx.closePath(); ctx.fill();
+}
+function setDash(s){ctx.setLineDash(s==='dashed'?[9,4]:s==='dotted'?[2,5]:[]);}
+
+// ─── RENDER ───────────────────────────────────────────
+function render(){
+  const RS=renderOverride||S;
+  pitch();
+
+  RS.arrows.forEach(a=>{
+    ctx.strokeStyle=a.color;ctx.lineWidth=a.lw;setDash(a.ls);
+    ctx.beginPath();ctx.moveTo(a.x1,a.y1);ctx.lineTo(a.x2,a.y2);ctx.stroke();
+    ctx.setLineDash([]);
+    if(a.arr)arrowhead(a.x1,a.y1,a.x2,a.y2,a.color,a.lw*4+4);
+  });
+
+  RS.lines.forEach(l=>{
+    if(l.pts.length<2)return;
+    ctx.strokeStyle=l.color;ctx.lineWidth=l.lw;setDash(l.ls);
+    ctx.lineJoin='round';ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(l.pts[0].x,l.pts[0].y);
+    l.pts.forEach(p=>ctx.lineTo(p.x,p.y));ctx.stroke();ctx.setLineDash([]);
+  });
+
+  RS.texts.forEach(t=>{
+    ctx.font=`bold ${t.sz}px sans-serif`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillText(t.txt,t.x+1,t.y+1);
+    ctx.fillStyle=t.color;ctx.fillText(t.txt,t.x,t.y);
+  });
+
+  // Trajectory preview (edit mode only, when not overriding)
+  if(!renderOverride&&ANIM.active&&!ANIM.playing){
+    drawTrajectoryPreview();
+  }
+
+  // Live draw preview
+  if(!renderOverride&&draw){
+    ctx.strokeStyle=S.drawColor;ctx.lineWidth=S.lineWidth;setDash(S.lineStyle);
+    ctx.lineJoin='round';ctx.lineCap='round';
+    if(draw.type==='arrow'||draw.type==='line'){
+      ctx.beginPath();ctx.moveTo(draw.x1,draw.y1);ctx.lineTo(draw.x2,draw.y2);ctx.stroke();
+      ctx.setLineDash([]);
+      if(draw.type==='arrow')arrowhead(draw.x1,draw.y1,draw.x2,draw.y2,S.drawColor,S.lineWidth*4+4);
+    }else if(draw.pts&&draw.pts.length>1){
+      ctx.beginPath();ctx.moveTo(draw.pts[0].x,draw.pts[0].y);
+      draw.pts.forEach(p=>ctx.lineTo(p.x,p.y));ctx.stroke();
+    }
+    ctx.setLineDash([]);
+  }
+
+  // Ball
+  {
+    const b=RS.ball;
+    ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=6;ctx.shadowOffsetY=3;
+    ctx.fillStyle='white';ctx.beginPath();ctx.arc(b.x,b.y,9,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#333';ctx.lineWidth=1.5;ctx.setLineDash([]);ctx.stroke();
+    ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+    ctx.fillStyle='#333';ctx.beginPath();ctx.arc(b.x,b.y,3,0,Math.PI*2);ctx.fill();
+  }
+
+  // Players
+  RS.players.forEach((p,i)=>{
+    const isSel=!renderOverride&&sel&&sel.type==='player'&&sel.i===i;
+    ctx.globalAlpha=p.alpha??1;
+    ctx.shadowColor='rgba(0,0,0,.5)';ctx.shadowBlur=8;ctx.shadowOffsetX=2;ctx.shadowOffsetY=2;
+    ctx.beginPath();ctx.arc(p.x,p.y,PR,0,Math.PI*2);
+    ctx.fillStyle=p.color;ctx.fill();
+    ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;
+    ctx.strokeStyle=isSel?'#FFD700':'rgba(255,255,255,.85)';
+    ctx.lineWidth=isSel?3:1.5;ctx.setLineDash([]);ctx.stroke();
+    ctx.fillStyle='white';ctx.font='bold 11px sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(p.num,p.x,p.y);
+    if(p.name){
+      ctx.font='9px sans-serif';
+      const tw=ctx.measureText(p.name).width+6;
+      ctx.fillStyle='rgba(0,0,0,.75)';
+      ctx.fillRect(p.x-tw/2,p.y+PR+2,tw,13);
+      ctx.fillStyle='white';ctx.textBaseline='top';
+      ctx.fillText(p.name.substring(0,10),p.x,p.y+PR+4);
+    }
+    ctx.textBaseline='alphabetic';
+    ctx.globalAlpha=1;
+  });
+}
+
+// ─── TRAJECTORY PREVIEW ───────────────────────────────
+function drawTrajectoryPreview(){
+  if(ANIM.currentKF<0||ANIM.currentKF>=ANIM.keyframes.length-1)return;
+  const nextKF=ANIM.keyframes[ANIM.currentKF+1];
+  const nextMap={};
+  nextKF.players.forEach(p=>nextMap[p.id]=p);
+
+  ctx.setLineDash([5,4]);ctx.lineWidth=1.5;
+  S.players.forEach(p=>{
+    const np=nextMap[p.id];
+    if(!np)return;
+    const dx=np.x-p.x,dy=np.y-p.y;
+    if(dx*dx+dy*dy<25)return;
+    ctx.strokeStyle='rgba(255,255,255,.3)';
+    ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(np.x,np.y);ctx.stroke();
+    ctx.globalAlpha=.28;
+    ctx.beginPath();ctx.arc(np.x,np.y,PR,0,Math.PI*2);
+    ctx.fillStyle=p.color;ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=1;ctx.stroke();
+    ctx.globalAlpha=1;
+  });
+
+  const nb=nextKF.ball,bdx=nb.x-S.ball.x,bdy=nb.y-S.ball.y;
+  if(bdx*bdx+bdy*bdy>25){
+    ctx.strokeStyle='rgba(255,220,0,.4)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(S.ball.x,S.ball.y);ctx.lineTo(nb.x,nb.y);ctx.stroke();
+    ctx.globalAlpha=.28;ctx.fillStyle='white';
+    ctx.beginPath();ctx.arc(nb.x,nb.y,9,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;
+  }
+  ctx.setLineDash([]);
+}
+
+// ─── HISTORY ──────────────────────────────────────────
+function snap(){
+  if(ANIM.active){
+    hist.push(JSON.stringify({kfs:cloneDeep(ANIM.keyframes),ckf:ANIM.currentKF}));
+  }else{
+    hist.push(JSON.stringify({players:S.players,arrows:S.arrows,lines:S.lines,texts:S.texts,ball:S.ball}));
+  }
+  if(hist.length>60)hist.shift();
+}
+
+function undo(){
+  if(!hist.length)return;
+  const prev=JSON.parse(hist.pop());
+  if(ANIM.active&&prev.kfs!==undefined){
+    ANIM.keyframes=prev.kfs;
+    selectKF(Math.min(prev.ckf,ANIM.keyframes.length-1));
+    renderStoryboard();
+  }else if(!ANIM.active&&prev.players){
+    Object.assign(S,prev);sel=null;render();status();
+  }
+}
+
+// ─── HIT TEST ─────────────────────────────────────────
+function playerAt(x,y){
+  for(let i=S.players.length-1;i>=0;i--){
+    const p=S.players[i];
+    if((x-p.x)**2+(y-p.y)**2<=PR*PR)return i;
+  }
+  return -1;
+}
+function ballAt(x,y){return(x-S.ball.x)**2+(y-S.ball.y)**2<=16*16;}
+function arrowAt(x,y){
+  for(let i=S.arrows.length-1;i>=0;i--){
+    const a=S.arrows[i],dx=a.x2-a.x1,dy=a.y2-a.y1,l2=dx*dx+dy*dy;
+    if(!l2)continue;
+    const t=Math.max(0,Math.min(1,((x-a.x1)*dx+(y-a.y1)*dy)/l2));
+    if((x-a.x1-t*dx)**2+(y-a.y1-t*dy)**2<64)return i;
+  }
+  return -1;
+}
+function lineAt(x,y){
+  for(let i=S.lines.length-1;i>=0;i--){
+    const l=S.lines[i];
+    for(let j=0;j<l.pts.length-1;j++){
+      const p1=l.pts[j],p2=l.pts[j+1];
+      const dx=p2.x-p1.x,dy=p2.y-p1.y,l2=dx*dx+dy*dy;
+      if(!l2)continue;
+      const t=Math.max(0,Math.min(1,((x-p1.x)*dx+(y-p1.y)*dy)/l2));
+      if((x-p1.x-t*dx)**2+(y-p1.y-t*dy)**2<64)return i;
+    }
+  }
+  return -1;
+}
+function textAt(x,y){
+  for(let i=S.texts.length-1;i>=0;i--){
+    const t=S.texts[i];
+    if(Math.abs(x-t.x)<50&&Math.abs(y-t.y)<14)return i;
+  }
+  return -1;
+}
+
+// ─── POINTER ──────────────────────────────────────────
+function pos(e){
+  const r=canvas.getBoundingClientRect();
+  return{x:(e.clientX-r.left)*(CW/r.width),y:(e.clientY-r.top)*(CH/r.height)};
+}
+
+// ─── EVENTS ───────────────────────────────────────────
+canvas.addEventListener('mousedown',onDown);
+canvas.addEventListener('mousemove',onMove);
+canvas.addEventListener('mouseup',onUp);
+canvas.addEventListener('touchstart',e=>{e.preventDefault();onDown(e.touches[0]);},{passive:false});
+canvas.addEventListener('touchmove', e=>{e.preventDefault();onMove(e.touches[0]);},{passive:false});
+canvas.addEventListener('touchend',  e=>{e.preventDefault();onUp(e.changedTouches[0]);},{passive:false});
+
+function onDown(e){
+  if(ANIM.playing)return;
+  const{x,y}=pos(e);
+  if(S.tool==='select'){
+    if(ballAt(x,y)){snap();drag={type:'ball',ox:x-S.ball.x,oy:y-S.ball.y};return;}
+    const pi=playerAt(x,y);
+    if(pi>=0){snap();drag={type:'player',i:pi,ox:x-S.players[pi].x,oy:y-S.players[pi].y};sel={type:'player',i:pi};render();return;}
+    sel=null;render();return;
+  }
+  if(S.tool==='arrow'||S.tool==='line'){draw={type:S.tool,x1:x,y1:y,x2:x,y2:y};return;}
+  if(S.tool==='freehand'){draw={type:'freehand',pts:[{x,y}]};return;}
+  if(S.tool==='text'){
+    const txt=prompt('Inserisci testo:','');
+    if(txt&&txt.trim()){snap();S.texts.push({x,y,txt:txt.trim(),color:S.drawColor,sz:14});render();syncToKF();}
+    return;
+  }
+  if(S.tool==='delete'){
+    const pi=playerAt(x,y);
+    if(pi>=0){snap();S.players.splice(pi,1);sel=null;render();status();syncToKF();return;}
+    const ai=arrowAt(x,y);
+    if(ai>=0){snap();S.arrows.splice(ai,1);render();syncToKF();return;}
+    const li=lineAt(x,y);
+    if(li>=0){snap();S.lines.splice(li,1);render();syncToKF();return;}
+    const ti=textAt(x,y);
+    if(ti>=0){snap();S.texts.splice(ti,1);render();syncToKF();}
+  }
+}
+
+function onMove(e){
+  const{x,y}=pos(e);
+  if(drag){
+    if(drag.type==='ball'){S.ball.x=x-drag.ox;S.ball.y=y-drag.oy;}
+    else{S.players[drag.i].x=x-drag.ox;S.players[drag.i].y=y-drag.oy;}
+    render();return;
+  }
+  if(draw){
+    if(draw.type==='arrow'||draw.type==='line'){draw.x2=x;draw.y2=y;}
+    else if(draw.type==='freehand')draw.pts.push({x,y});
+    render();return;
+  }
+  canvas.style.cursor=S.tool==='select'&&(playerAt(x,y)>=0||ballAt(x,y))?'grab':'default';
+}
+
+function onUp(e){
+  if(drag){drag=null;canvas.style.cursor='default';syncToKF();}
+  if(draw){
+    snap();
+    const{type,x1,y1,x2,y2,pts}=draw;
+    if(type==='arrow'||type==='line'){
+      if((x2-x1)**2+(y2-y1)**2>25)
+        S.arrows.push({x1,y1,x2,y2,color:S.drawColor,lw:S.lineWidth,ls:S.lineStyle,arr:type==='arrow'});
+    }else if(pts&&pts.length>3){
+      S.lines.push({pts,color:S.drawColor,lw:S.lineWidth,ls:S.lineStyle});
+    }
+    draw=null;render();syncToKF();
+  }
+}
+
+canvas.addEventListener('dblclick',e=>{
+  const{x,y}=pos(e);
+  const pi=playerAt(x,y);
+  if(pi<0)return;
+  const p=S.players[pi];
+  const name=prompt(`Nome giocatore #${p.num} (${p.team}):`,p.name||'');
+  if(name!==null){snap();S.players[pi].name=name;render();syncToKF();}
+});
+
+// ─── KEYBOARD ─────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();undo();return;}
+  const map={s:'tsel',a:'tarr',l:'tlin',f:'tfre',t:'ttxt',d:'tdel'};
+  if(map[e.key.toLowerCase()])document.getElementById(map[e.key.toLowerCase()]).click();
+  if((e.key==='Delete'||e.key==='Backspace')&&sel?.type==='player'){
+    snap();S.players.splice(sel.i,1);sel=null;render();status();syncToKF();
+  }
+  if(e.key==='Escape'){sel=null;draw=null;render();}
+  if(e.key===' '&&ANIM.active){e.preventDefault();animTogglePlay();}
+});
+
+// ─── TOOLS ────────────────────────────────────────────
+const TOOLS=[
+  {id:'tsel',name:'Seleziona',key:'select',cur:'default'},
+  {id:'tarr',name:'Freccia',key:'arrow',cur:'crosshair'},
+  {id:'tlin',name:'Linea',key:'line',cur:'crosshair'},
+  {id:'tfre',name:'Disegno lib.',key:'freehand',cur:'crosshair'},
+  {id:'ttxt',name:'Testo',key:'text',cur:'text'},
+  {id:'tdel',name:'Cancella',key:'delete',cur:'not-allowed'},
+];
+TOOLS.forEach(t=>{
+  document.getElementById(t.id).addEventListener('click',()=>{
+    S.tool=t.key;
+    TOOLS.forEach(o=>document.getElementById(o.id).classList.remove('active'));
+    document.getElementById(t.id).classList.add('active');
+    canvas.style.cursor=t.cur;
+    document.getElementById('btool').textContent='Strumento: '+t.name;
+  });
+});
+document.getElementById('dcol').addEventListener('input',e=>S.drawColor=e.target.value);
+document.getElementById('dlw').addEventListener('input',e=>S.lineWidth=+e.target.value);
+document.getElementById('dls').addEventListener('change',e=>S.lineStyle=e.target.value);
+
+// ─── PLAYERS ──────────────────────────────────────────
+function addPlayer(team){
+  const num=team==='A'?nA++:nB++;
+  snap();
+  S.players.push({
+    id:uid(),team,num,color:team==='A'?'#e74c3c':'#3498db',name:'',
+    x:FX+FW*(team==='A'?.25:.75)+(Math.random()-.5)*80,
+    y:FY+FH*.5+(Math.random()-.5)*100,
+  });
+  render();status();syncToKF();
+}
+
+// ─── FORMATIONS ───────────────────────────────────────
+const FORMS={
+  '4-4-2':  [[.5],[.18,.38,.62,.82],[.18,.38,.62,.82],[.33,.67]],
+  '4-3-3':  [[.5],[.18,.38,.62,.82],[.25,.5,.75],[.17,.5,.83]],
+  '4-2-3-1':[[.5],[.18,.38,.62,.82],[.33,.67],[.2,.5,.8],[.5]],
+  '3-5-2':  [[.5],[.25,.5,.75],[.12,.3,.5,.7,.88],[.35,.65]],
+  '3-4-3':  [[.5],[.25,.5,.75],[.18,.4,.6,.82],[.18,.5,.82]],
+  '4-5-1':  [[.5],[.18,.38,.62,.82],[.12,.3,.5,.7,.88],[.5]],
+  '5-3-2':  [[.5],[.1,.28,.5,.72,.9],[.25,.5,.75],[.33,.67]],
+  '4-1-4-1':[[.5],[.18,.38,.62,.82],[.5],[.12,.35,.65,.88],[.5]],
+  '3-4-1-2':[[.5],[.25,.5,.75],[.18,.4,.6,.82],[.5],[.33,.67]],
+  '4-3-2-1':[[.5],[.18,.38,.62,.82],[.25,.5,.75],[.33,.67],[.5]],
+};
+
+['fmA','fmB'].forEach((id,ti)=>{
+  const sel=document.getElementById(id);
+  Object.keys(FORMS).forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);});
+  sel.addEventListener('change',e=>{
+    if(!e.target.value)return;
+    applyFormation(e.target.value,ti===0?'A':'B');
+    e.target.value='';
+  });
+});
+
+function applyFormation(name,team){
+  const rows=FORMS[name];if(!rows)return;
+  snap();
+  S.players=S.players.filter(p=>p.team!==team);
+  const isA=team==='A',color=isA?'#e74c3c':'#3498db';
+  let num=1;if(isA)nA=1;else nB=1;
+  rows.forEach((row,ri)=>{
+    const xFrac=isA?0.04+ri*(0.44/Math.max(rows.length-1,1)):0.96-ri*(0.44/Math.max(rows.length-1,1));
+    row.forEach(yFrac=>{
+      S.players.push({id:uid(),team,num:num++,color,name:'',x:FX+xFrac*FW,y:FY+yFrac*FH});
+    });
+  });
+  if(isA)nA=num;else nB=num;
+  render();status();syncToKF();
+}
+
+// ─── TOOLBAR ACTIONS ──────────────────────────────────
+function clearDrawings(){
+  if(!confirm('Cancellare tutti i disegni?'))return;
+  snap();S.arrows=[];S.lines=[];S.texts=[];render();syncToKF();
+}
+function resetAll(){
+  if(!confirm('Resettare tutto?'))return;
+  snap();S.players=[];S.arrows=[];S.lines=[];S.texts=[];
+  S.ball={x:FX+FW/2,y:FY+FH/2};nA=1;nB=1;sel=null;
+  if(ANIM.active){ANIM.keyframes=[];ANIM.currentKF=-1;animStop();renderStoryboard();}
+  render();status();
+}
+function download(){sel=null;render();const a=document.createElement('a');a.download='tattica.png';a.href=canvas.toDataURL('image/png');a.click();}
+
+// ─── SHARE ────────────────────────────────────────────
+function share(){
+  const data={players:S.players,arrows:S.arrows,lines:S.lines,texts:S.texts,ball:S.ball};
+  try{
+    const enc=btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+    document.getElementById('shareUrl').value=location.origin+location.pathname+'#'+enc;
+    document.getElementById('shareModal').classList.add('open');
+  }catch(err){alert('Errore: '+err.message);}
+}
+function copyUrl(){
+  const inp=document.getElementById('shareUrl');inp.select();
+  navigator.clipboard.writeText(inp.value).then(()=>{
+    const b=document.querySelector('#shareModal button');const old=b.textContent;b.textContent='✓ Copiato!';
+    setTimeout(()=>b.textContent=old,2000);
+  });
+}
+document.getElementById('shareModal').addEventListener('click',e=>{
+  if(e.target===document.getElementById('shareModal'))document.getElementById('shareModal').classList.remove('open');
+});
+
+// ─── STATUS ───────────────────────────────────────────
+function status(){
+  const a=S.players.filter(p=>p.team==='A').length,b=S.players.filter(p=>p.team==='B').length;
+  document.getElementById('bteams').textContent=`Team A: ${a} | Team B: ${b}`;
+}
+
+// ═══════════════════════════════════════════════════════
+// ANIMATION SYSTEM
+// ═══════════════════════════════════════════════════════
+
+function toggleAnimMode(){
+  if(ANIM.active)exitAnimMode();else enterAnimMode();
+}
+
+function enterAnimMode(){
+  ANIM.active=true;
+  document.getElementById('anim-panel').classList.add('open');
+  document.getElementById('btn-anim').classList.add('active');
+  if(ANIM.keyframes.length===0){
+    // auto-create first keyframe from current state
+    addKFInternal();
+  }else{
+    selectKF(ANIM.currentKF>=0?ANIM.currentKF:0);
+  }
+  renderStoryboard();
+}
+
+function exitAnimMode(){
+  animStop();
+  ANIM.active=false;
+  document.getElementById('anim-panel').classList.remove('open');
+  document.getElementById('btn-anim').classList.remove('active');
+}
+
+// ─── KEYFRAME MANAGEMENT ──────────────────────────────
+function kfFromState(){
+  return{
+    id:uid(),dur:2000,
+    players:cloneDeep(S.players),
+    ball:{...S.ball},
+    arrows:cloneDeep(S.arrows),
+    lines:cloneDeep(S.lines),
+    texts:cloneDeep(S.texts),
+    thumb:null,
+  };
+}
+
+function addKFInternal(){
+  const kf=kfFromState();
+  const insertAt=ANIM.currentKF>=0?ANIM.currentKF+1:ANIM.keyframes.length;
+  ANIM.keyframes.splice(insertAt,0,kf);
+  ANIM.currentKF=insertAt;
+  scheduleThumb(ANIM.currentKF);
+}
+
+function addKeyframe(){
+  snap();
+  addKFInternal();
+  renderStoryboard();
+  updateScrubber();
+}
+
+function selectKF(idx){
+  if(idx<0||idx>=ANIM.keyframes.length)return;
+  ANIM.currentKF=idx;
+  const kf=ANIM.keyframes[idx];
+  S.players=cloneDeep(kf.players);
+  S.ball={...kf.ball};
+  S.arrows=cloneDeep(kf.arrows);
+  S.lines=cloneDeep(kf.lines);
+  S.texts=cloneDeep(kf.texts);
+  render();status();updateScrubber();
+  // Highlight active card
+  document.querySelectorAll('.kf-card').forEach((c,i)=>c.classList.toggle('active',i===idx));
+}
+
+function deleteKF(idx){
+  if(ANIM.keyframes.length<=1)return;
+  snap();
+  ANIM.keyframes.splice(idx,1);
+  const newIdx=Math.min(ANIM.currentKF,ANIM.keyframes.length-1);
+  ANIM.currentKF=newIdx;
+  selectKF(newIdx);
+  renderStoryboard();updateScrubber();
+}
+
+function editKFDur(idx){
+  const kf=ANIM.keyframes[idx];
+  const val=prompt(`Durata transizione fotogramma ${idx+1}→${idx+2} (secondi):`,
+    (kf.dur/1000).toFixed(1));
+  if(val===null)return;
+  const s=parseFloat(val);
+  if(isNaN(s)||s<=0)return;
+  kf.dur=Math.round(s*1000);
+  renderStoryboard();updateScrubber();
+}
+
+// Sync current S back to the active keyframe (called after any mutation)
+function syncToKF(){
+  if(!ANIM.active||ANIM.playing||ANIM.currentKF<0)return;
+  const kf=ANIM.keyframes[ANIM.currentKF];
+  if(!kf)return;
+  kf.players=cloneDeep(S.players);
+  kf.ball={...S.ball};
+  kf.arrows=cloneDeep(S.arrows);
+  kf.lines=cloneDeep(S.lines);
+  kf.texts=cloneDeep(S.texts);
+  scheduleThumb(ANIM.currentKF);
+  updateScrubber();
+}
+
+// Capture thumbnail of current canvas state
+function captureThumbnail(){
+  const tc=document.createElement('canvas');
+  tc.width=130;tc.height=80;
+  tc.getContext('2d').drawImage(canvas,0,0,130,80);
+  return tc.toDataURL('image/jpeg',.65);
+}
+
+let thumbTimers={};
+function scheduleThumb(idx){
+  clearTimeout(thumbTimers[idx]);
+  thumbTimers[idx]=setTimeout(()=>{
+    if(ANIM.keyframes[idx]){
+      ANIM.keyframes[idx].thumb=captureThumbnail();
+      const cards=document.querySelectorAll('.kf-card');
+      if(cards[idx]){
+        const img=cards[idx].querySelector('.kf-thumb');
+        if(img)img.src=ANIM.keyframes[idx].thumb;
+      }
+    }
+  },80);
+}
+
+// ─── STORYBOARD ───────────────────────────────────────
+function renderStoryboard(){
+  const sb=document.getElementById('storyboard-wrap');
+  sb.innerHTML='';
+
+  ANIM.keyframes.forEach((kf,i)=>{
+    const card=document.createElement('div');
+    card.className='kf-card'+(i===ANIM.currentKF?' active':'');
+
+    const img=document.createElement('img');
+    img.className='kf-thumb';
+    img.src=kf.thumb||'';
+    img.alt=`Fotogramma ${i+1}`;
+
+    const foot=document.createElement('div');
+    foot.className='kf-foot';
+
+    const num=document.createElement('span');
+    num.className='kf-num';
+    num.textContent=`#${i+1}`;
+
+    const dur=document.createElement('span');
+    dur.className='kf-dur';
+    if(i<ANIM.keyframes.length-1){
+      dur.textContent=`→ ${(kf.dur/1000).toFixed(1)}s`;
+      dur.title='Clicca per cambiare durata';
+      dur.addEventListener('click',e=>{e.stopPropagation();editKFDur(i);});
+    }else{
+      dur.textContent='(fine)';
+      dur.style.color='#8b949e';
+    }
+
+    const del=document.createElement('span');
+    del.className='kf-del';del.textContent='✕';del.title='Elimina fotogramma';
+    del.addEventListener('click',e=>{e.stopPropagation();deleteKF(i);});
+
+    foot.appendChild(num);foot.appendChild(dur);foot.appendChild(del);
+    card.appendChild(img);card.appendChild(foot);
+
+    card.addEventListener('click',()=>{if(!ANIM.playing)selectKF(i);});
+    sb.appendChild(card);
+  });
+
+  // Add button
+  const addBtn=document.createElement('button');
+  addBtn.className='kf-add';
+  addBtn.innerHTML='<span class="plus">+</span><span>Fotogramma</span>';
+  addBtn.title='Aggiungi fotogramma dopo quello selezionato';
+  addBtn.addEventListener('click',addKeyframe);
+  sb.appendChild(addBtn);
+
+  updateScrubber();
+}
+
+// ─── SCRUBBER ─────────────────────────────────────────
+function animTotalTime(){
+  if(ANIM.keyframes.length<2)return 0;
+  return ANIM.keyframes.slice(0,-1).reduce((s,k)=>s+k.dur,0);
+}
+
+function updateScrubber(){
+  const total=animTotalTime();
+  const cs=ANIM.playing?ANIM.currentTime:(()=>{
+    let acc=0;for(let i=0;i<ANIM.currentKF;i++)acc+=ANIM.keyframes[i]?.dur||0;return acc;
+  })();
+  const pct=total>0?Math.min(100,(cs/total)*100):0;
+  document.getElementById('anim-progress').style.width=pct+'%';
+  document.getElementById('anim-time').textContent=
+    `${(cs/1000).toFixed(1)}s / ${(total/1000).toFixed(1)}s`;
+
+  // KF dots on scrubber
+  const dotsEl=document.getElementById('scr-kf-dots');
+  dotsEl.innerHTML='';
+  if(total>0){
+    let acc=0;
+    ANIM.keyframes.slice(0,-1).forEach((kf,i)=>{
+      acc+=kf.dur;
+      const dot=document.createElement('div');
+      dot.className='scr-kf-dot';
+      dot.style.left=(acc/total*100)+'%';
+      dot.title=`Fotogramma ${i+2}`;
+      dotsEl.appendChild(dot);
+    });
+  }
+}
+
+document.getElementById('anim-scrubber-wrap').addEventListener('click',e=>{
+  if(ANIM.keyframes.length<2)return;
+  const r=e.currentTarget.getBoundingClientRect();
+  const frac=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
+  ANIM.currentTime=frac*animTotalTime();
+  if(!ANIM.playing){renderAtTime(ANIM.currentTime);updateScrubber();}
+});
+
+// ─── PLAYBACK ─────────────────────────────────────────
+function animPlay(){
+  if(ANIM.playing||ANIM.keyframes.length<2)return;
+  ANIM.playing=true;
+  ANIM.playWall=performance.now();
+  ANIM.playStart=ANIM.currentTime;
+  document.getElementById('anim-play-btn').textContent='⏸ Pausa';
+
+  function tick(){
+    if(!ANIM.playing)return;
+    const elapsed=(performance.now()-ANIM.playWall)*ANIM.speed;
+    ANIM.currentTime=ANIM.playStart+elapsed;
+    const total=animTotalTime();
+    if(ANIM.currentTime>=total){
+      ANIM.currentTime=total;
+      renderAtTime(total);
+      updateScrubber();
+      if(ANIM.loop){
+        ANIM.currentTime=0;ANIM.playWall=performance.now();ANIM.playStart=0;
+        ANIM.rafId=requestAnimationFrame(tick);
+      }else{
+        animPause();
+      }
+      return;
+    }
+    renderAtTime(ANIM.currentTime);
+    updateScrubber();
+    ANIM.rafId=requestAnimationFrame(tick);
+  }
+  ANIM.rafId=requestAnimationFrame(tick);
+}
+
+function animPause(){
+  ANIM.playing=false;
+  if(ANIM.rafId)cancelAnimationFrame(ANIM.rafId);
+  document.getElementById('anim-play-btn').textContent='▶ Play';
+  document.querySelectorAll('.kf-card').forEach(c=>c.classList.remove('playing'));
+}
+
+function animStop(){
+  animPause();
+  ANIM.currentTime=0;
+  if(ANIM.keyframes.length>0)selectKF(0);
+  else render();
+  updateScrubber();
+}
+
+function animGoStart(){animStop();}
+function animTogglePlay(){if(ANIM.playing)animPause();else animPlay();}
+
+// ─── INTERPOLATION ────────────────────────────────────
+function renderAtTime(ms){
+  let acc=0;
+  for(let i=0;i<ANIM.keyframes.length-1;i++){
+    const kf=ANIM.keyframes[i];
+    if(ms<=acc+kf.dur){
+      const t=ease(Math.max(0,Math.min(1,(ms-acc)/kf.dur)));
+      renderInterpolated(ANIM.keyframes[i],ANIM.keyframes[i+1],t);
+      // highlight playing card
+      document.querySelectorAll('.kf-card').forEach((c,ci)=>{
+        c.classList.toggle('playing',ci===i||(t>.5&&ci===i+1));
+      });
+      return;
+    }
+    acc+=kf.dur;
+  }
+  // past end: show last keyframe
+  const last=ANIM.keyframes[ANIM.keyframes.length-1];
+  renderOverride={players:last.players,ball:last.ball,arrows:last.arrows,lines:last.lines,texts:last.texts};
+  render();renderOverride=null;
+  document.querySelectorAll('.kf-card').forEach((c,ci)=>c.classList.toggle('playing',ci===ANIM.keyframes.length-1));
+}
+
+function renderInterpolated(kf1,kf2,t){
+  const mapA={},mapB={};
+  kf1.players.forEach(p=>mapA[p.id]=p);
+  kf2.players.forEach(p=>mapB[p.id]=p);
+
+  const players=[];
+  [...new Set([...Object.keys(mapA),...Object.keys(mapB)])].forEach(id=>{
+    const pA=mapA[id],pB=mapB[id];
+    if(pA&&pB){
+      players.push({...pA,x:lerp(pA.x,pB.x,t),y:lerp(pA.y,pB.y,t),alpha:1});
+    }else if(pA){
+      players.push({...pA,alpha:Math.max(0,1-t*3)});
+    }else{
+      players.push({...pB,alpha:Math.max(0,(t-.67)*3)});
+    }
+  });
+
+  renderOverride={
+    players,
+    ball:{x:lerp(kf1.ball.x,kf2.ball.x,t),y:lerp(kf1.ball.y,kf2.ball.y,t)},
+    arrows:t<.5?kf1.arrows:kf2.arrows,
+    lines: t<.5?kf1.lines :kf2.lines,
+    texts: t<.5?kf1.texts :kf2.texts,
+  };
+  render();
+  renderOverride=null;
+}
+
+// ─── LOAD FROM URL ────────────────────────────────────
+function loadFromUrl(){
+  const h=location.hash.slice(1);if(!h)return;
+  try{
+    const data=JSON.parse(decodeURIComponent(escape(atob(h))));
+    if(data.players)S.players=data.players.map(p=>({...p,id:p.id||uid()}));
+    if(data.arrows)S.arrows=data.arrows;
+    if(data.lines)S.lines=data.lines;
+    if(data.texts)S.texts=data.texts;
+    if(data.ball)S.ball=data.ball;
+    render();status();
+  }catch(e){console.warn('URL load failed',e);}
+}
+
+// ─── TIPS ─────────────────────────────────────────────
+const tips=[
+  'Doppio clic su un giocatore per modificare il nome',
+  'Scorciatoie: S=Seleziona A=Freccia L=Linea F=Libero T=Testo D=Cancella',
+  'Modalità animazione: aggiungi fotogrammi e premi ▶ Play per riprodurre',
+  'In animazione: trascina i giocatori nel fotogramma selezionato',
+  'Barra spazio = Play/Pausa durante l\'animazione',
+  'Le traiettorie grigie mostrano dove si muoveranno i giocatori nel prossimo fotogramma',
+];
+let ti=0;
+setInterval(()=>{document.getElementById('btip').textContent=tips[ti=(ti+1)%tips.length];},5000);
+
+// ─── INIT ─────────────────────────────────────────────
+render();
+loadFromUrl();
+status();
+</script>
+</body>
+</html>
