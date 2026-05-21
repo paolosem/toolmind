@@ -149,7 +149,7 @@ canvas{display:block;border-radius:4px;box-shadow:0 0 40px rgba(0,0,0,.8)}
 <div class="overlay" id="shareModal">
   <div class="modal">
     <h2>🔗 Condividi la tattica</h2>
-    <p>Copia il link — contiene tutta la tattica codificata nell'URL:</p>
+    <p id="shareMsg">Copia il link — contiene tutta la tattica codificata nell'URL:</p>
     <input type="text" id="shareUrl" readonly>
     <div class="mact">
       <button onclick="copyUrl()">Copia link</button>
@@ -611,7 +611,16 @@ function download(){sel=null;render();const a=document.createElement('a');a.down
 
 // ─── SHARE ────────────────────────────────────────────
 function share(){
-  const data={players:S.players,arrows:S.arrows,lines:S.lines,texts:S.texts,ball:S.ball};
+  let data;
+  if(ANIM.active&&ANIM.keyframes.length>0){
+    data={type:'animation',keyframes:cloneDeep(ANIM.keyframes)};
+    document.getElementById('shareMsg').textContent=
+      `Link all'animazione completa (${ANIM.keyframes.length} fotogrammi) — aprilo con la lavagnetta:`;
+  }else{
+    data={players:S.players,arrows:S.arrows,lines:S.lines,texts:S.texts,ball:S.ball};
+    document.getElementById('shareMsg').textContent=
+      'Copia il link — contiene tutta la tattica codificata nell\'URL:';
+  }
   try{
     const enc=btoa(unescape(encodeURIComponent(JSON.stringify(data))));
     document.getElementById('shareUrl').value=location.origin+location.pathname+'#'+enc;
@@ -963,13 +972,37 @@ function loadFromUrl(){
   const h=location.hash.slice(1);if(!h)return;
   try{
     const data=JSON.parse(decodeURIComponent(escape(atob(h))));
-    if(data.players)S.players=data.players.map(p=>({...p,id:p.id||uid()}));
-    if(data.arrows)S.arrows=data.arrows;
-    if(data.lines)S.lines=data.lines;
-    if(data.texts)S.texts=data.texts;
-    if(data.ball)S.ball=data.ball;
-    render();status();
+    if(data.type==='animation'&&data.keyframes){
+      ANIM.keyframes=data.keyframes.map(kf=>({
+        ...kf,
+        players:kf.players.map(p=>({...p,id:p.id||uid()})),
+        thumb:null,
+      }));
+      ANIM.currentKF=0;
+      enterAnimMode();
+      generateAllThumbnails();
+    }else{
+      if(data.players)S.players=data.players.map(p=>({...p,id:p.id||uid()}));
+      if(data.arrows)S.arrows=data.arrows;
+      if(data.lines)S.lines=data.lines;
+      if(data.texts)S.texts=data.texts;
+      if(data.ball)S.ball=data.ball;
+      render();status();
+    }
   }catch(e){console.warn('URL load failed',e);}
+}
+
+// genera le thumbnail per tutti i fotogrammi (es. dopo caricamento da URL)
+function generateAllThumbnails(){
+  const saved=ANIM.currentKF;
+  ANIM.keyframes.forEach((kf,i)=>{
+    renderOverride={players:kf.players,ball:kf.ball,arrows:kf.arrows,lines:kf.lines,texts:kf.texts};
+    render();
+    kf.thumb=captureThumbnail();
+    renderOverride=null;
+  });
+  selectKF(saved>=0?saved:0);
+  renderStoryboard();
 }
 
 // ─── TIPS ─────────────────────────────────────────────
